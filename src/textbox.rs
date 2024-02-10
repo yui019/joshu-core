@@ -2,7 +2,7 @@ use std::{str::from_utf8, time};
 
 use ggez::{
     glam::Vec2,
-    graphics::{Canvas, Color, DrawParam, Image, PxScale, Text, TextFragment},
+    graphics::{Canvas, Color, DrawParam, Drawable, Image, PxScale, Text, TextFragment},
     Context,
 };
 
@@ -23,10 +23,7 @@ impl Textbox {
         let displayed_text = Text::new("");
         let image = Image::from_path(ctx, "/textbox.png").expect("Could not load textbox image!");
 
-        let bounds = Vec2::new(
-            SCREEN_WIDTH - avatar_image_width - 20.0,
-            image.height() as f32 - 30.0,
-        );
+        let bounds = Vec2::new(SCREEN_WIDTH - avatar_image_width - 20.0, f32::MAX);
 
         Self {
             shown: false,
@@ -81,6 +78,26 @@ impl Textbox {
                     scale: Some(PxScale::from(32.0)),
                     ..Default::default()
                 });
+
+                // if the text overflows past the bottom of the screen
+                match self.displayed_text.dimensions(&ctx.gfx) {
+                    Some(r) => {
+                        let max_height = self.image.height() as f32 - 30.0;
+
+                        if r.h >= max_height {
+                            // find first space from the end
+                            let mut i = index;
+                            while self.entire_text.as_bytes()[i] != b' ' {
+                                i -= 1;
+                            }
+
+                            self.entire_text = self.entire_text[(i + 1)..].to_string();
+                            self.displayed_text = Text::new("");
+                            self.displayed_text.set_bounds(self.bounds);
+                        }
+                    }
+                    None => {}
+                }
             }
         }
     }
