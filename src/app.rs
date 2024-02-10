@@ -17,7 +17,7 @@ pub struct App {
 
 impl App {
     pub fn new(ctx: &mut Context, input_receiver: Receiver<Message>) -> App {
-        let default_avatar_image = Image::from_path(ctx, "/kurisu/CRS_BMA01a.png")
+        let default_avatar_image = Image::from_path(ctx, "/kurisu/arms_crossed_normal.png")
             .expect("Could not load default kurisu image!");
 
         let textbox = Textbox::new(ctx, default_avatar_image.width() as f32);
