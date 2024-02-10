@@ -8,6 +8,11 @@ use ggez::{
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
+const FONT_SIZE: f32 = 32.0;
+const HORIZONTAL_PADDING: f32 = 10.0;
+const VERTICAL_PADDING: f32 = 15.0;
+const TEXT_ANIMATION_SPEED: u128 = 30; // amount of time in between characters appearing
+
 pub struct Textbox {
     shown: bool,
     entire_text: String,
@@ -23,7 +28,10 @@ impl Textbox {
         let displayed_text = Text::new("");
         let image = Image::from_path(ctx, "/textbox.png").expect("Could not load textbox image!");
 
-        let bounds = Vec2::new(SCREEN_WIDTH - avatar_image_width - 20.0, f32::MAX);
+        let bounds = Vec2::new(
+            SCREEN_WIDTH - avatar_image_width - (2.0 * HORIZONTAL_PADDING),
+            f32::MAX,
+        );
 
         Self {
             shown: false,
@@ -53,7 +61,7 @@ impl Textbox {
     pub fn update(&mut self, ctx: &Context) {
         let elapsed = ctx.time.time_since_start() - self.time_last_char_appeared;
 
-        if !self.entire_text.is_empty() && elapsed.as_millis() >= 30 {
+        if !self.entire_text.is_empty() && elapsed.as_millis() >= TEXT_ANIMATION_SPEED {
             self.time_last_char_appeared = ctx.time.time_since_start();
 
             let index: usize = self.displayed_text.contents().len();
@@ -75,14 +83,14 @@ impl Textbox {
                 self.displayed_text.add(TextFragment {
                     text: text.to_string(),
                     color: Some(Color::WHITE),
-                    scale: Some(PxScale::from(32.0)),
+                    scale: Some(PxScale::from(FONT_SIZE)),
                     ..Default::default()
                 });
 
                 // if the text overflows past the bottom of the screen
                 match self.displayed_text.dimensions(&ctx.gfx) {
                     Some(r) => {
-                        let max_height = self.image.height() as f32 - 30.0;
+                        let max_height = self.image.height() as f32 - (2.0 * VERTICAL_PADDING);
 
                         if r.h >= max_height {
                             // find first space from the end
@@ -112,8 +120,8 @@ impl Textbox {
             canvas.draw(
                 &self.displayed_text,
                 DrawParam::new().dest(Vec2::new(
-                    10.0,
-                    SCREEN_HEIGHT - self.image.height() as f32 + 15.0,
+                    HORIZONTAL_PADDING,
+                    SCREEN_HEIGHT - self.image.height() as f32 + VERTICAL_PADDING,
                 )),
             );
         }
