@@ -16,6 +16,7 @@ const INPUT_TEXT_MAX_WIDTH: f32 = 1800.0;
 const INPUT_TEXT_FONT_SIZE: f32 = 32.0;
 const INPUT_TEXT_HORIZONTAL_PADDING: f32 = 10.0;
 const INPUT_TEXT_VERTICAL_PADDING: f32 = 15.0;
+const INPUT_TEXT_DEFAULT_PLACEHOLDER: &str = "Enter text...";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UiType {
@@ -37,6 +38,7 @@ enum UiState {
 pub struct Ui {
     state: Option<UiState>,
     input_text_background: Mesh,
+    input_text_placeholder: Text,
 }
 
 impl Ui {
@@ -59,9 +61,17 @@ impl Ui {
             .unwrap()
         };
 
+        let input_text_placeholder = Text::new(TextFragment {
+            text: INPUT_TEXT_DEFAULT_PLACEHOLDER.to_string(),
+            color: Some(Color::from_rgba(0, 0, 0, 180)), // 180 alpha (from 0 to 255)
+            scale: Some(PxScale::from(INPUT_TEXT_FONT_SIZE)),
+            ..Default::default()
+        });
+
         Self {
             state: None,
             input_text_background,
+            input_text_placeholder,
         }
     }
 
@@ -106,7 +116,7 @@ impl Ui {
         match &self.state {
             Some(UiState::InputText {
                 displayed_text,
-                entire_text: _,
+                entire_text,
             }) => {
                 canvas.draw(&self.input_text_background, DrawParam::new());
 
@@ -114,10 +124,20 @@ impl Ui {
                 let text_x = background_rect.x + INPUT_TEXT_HORIZONTAL_PADDING;
                 let text_y =
                     background_rect.y + background_rect.h / 2.0 - (INPUT_TEXT_FONT_SIZE / 2.0);
-                canvas.draw(
-                    displayed_text,
-                    DrawParam::new().dest(Vec2::new(text_x, text_y)),
-                );
+
+                if entire_text.len() == 0 {
+                    // display placeholder if there's no inputted text
+                    canvas.draw(
+                        &self.input_text_placeholder,
+                        DrawParam::new().dest(Vec2::new(text_x, text_y)),
+                    );
+                } else {
+                    // display inputted text
+                    canvas.draw(
+                        displayed_text,
+                        DrawParam::new().dest(Vec2::new(text_x, text_y)),
+                    );
+                }
             }
 
             Some(UiState::Select {
