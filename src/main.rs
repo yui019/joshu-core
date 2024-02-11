@@ -3,6 +3,7 @@ use ggez::event::{self};
 use ggez::ContextBuilder;
 use joshu_core::app::App;
 use joshu_core::message::Message;
+use joshu_core::ui::UiType;
 use joshu_core::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use std::path;
 use std::{
@@ -42,12 +43,20 @@ fn run_input_receiver() -> Receiver<Message> {
         // if let Ok(message) = serde_json::from_str::<Message>(&buffer) {
         //     sender.send(message).unwrap();
         // }
+        // sender
+        //     .send(Message {
+        //         id: None,
+        //         avatar_emotion: None,
+        //         textbox_text: Some(buffer.trim().to_string()),
+        //         user_input: None,
+        //     })
+        //     .unwrap();
         sender
             .send(Message {
                 id: None,
                 avatar_emotion: None,
                 textbox_text: Some(buffer.trim().to_string()),
-                input: None,
+                ui: Some(UiType::InputText),
             })
             .unwrap();
     });

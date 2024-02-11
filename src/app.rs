@@ -4,15 +4,17 @@ use ggez::{
     event::EventHandler,
     glam::Vec2,
     graphics::{Canvas, Color, DrawParam, Image},
+    winit::event::VirtualKeyCode,
     Context, GameResult,
 };
 
-use crate::{message::Message, textbox::Textbox, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{message::Message, textbox::Textbox, ui::Ui, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub struct App {
     input_receiver: Receiver<Message>,
     default_avatar_image: Image,
     textbox: Textbox,
+    ui: Ui,
 }
 
 impl App {
@@ -22,27 +24,32 @@ impl App {
 
         let textbox = Textbox::new(ctx, default_avatar_image.width() as f32);
 
+        let ui = Ui::new(ctx);
+
         App {
             input_receiver,
             default_avatar_image,
             textbox,
+            ui,
         }
+    }
+
+    fn handle_message(&mut self, ctx: &mut Context, message: Message) {
+        match message.textbox_text {
+            Some(text) => {
+                self.textbox.set_text(ctx, &text);
+            }
+            None => self.textbox.hide(),
+        }
+
+        self.ui.set_type(ctx, message.ui);
     }
 }
 
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         match self.input_receiver.try_recv() {
-            Ok(message) => {
-                // println!("Message: {:?}", message);
-
-                match message.textbox_text {
-                    Some(text) => {
-                        self.textbox.set_text(ctx, &text);
-                    }
-                    None => self.textbox.hide(),
-                }
-            }
+            Ok(message) => self.handle_message(ctx, message),
 
             Err(std::sync::mpsc::TryRecvError::Empty) => {}
             Err(std::sync::mpsc::TryRecvError::Disconnected) => panic!("wtf just happened??"),
@@ -66,6 +73,29 @@ impl EventHandler for App {
             )),
         );
 
+        self.ui.draw(ctx, &mut canvas);
+
         canvas.finish(ctx)
+    }
+
+    fn key_down_event(
+        &mut self,
+        ctx: &mut Context,
+        input: ggez::input::keyboard::KeyInput,
+        _repeated: bool,
+    ) -> Result<(), ggez::GameError> {
+        match input.keycode {
+            Some(VirtualKeyCode::Back) => self.ui.handle_backspace(ctx),
+
+            Some(VirtualKeyCode::Escape) => ctx.request_quit(),
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn text_input_event(&mut self, ctx: &mut Context, ch: char) -> Result<(), ggez::GameError> {
+        self.ui.handle_text_input(ctx, ch);
+
+        Ok(())
     }
 }
