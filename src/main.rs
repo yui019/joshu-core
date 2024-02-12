@@ -3,7 +3,7 @@ use ggez::event::{self};
 use ggez::ContextBuilder;
 use joshu_core::app::App;
 use joshu_core::message::Message;
-use joshu_core::ui::UiType;
+use joshu_core::ui::UiWidgetSetupData;
 use joshu_core::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use std::path;
 use std::{
@@ -56,7 +56,7 @@ fn run_input_receiver() -> Receiver<Message> {
                 id: None,
                 avatar_emotion: None,
                 textbox_text: Some(buffer.trim().to_string()),
-                ui: Some(UiType::InputText),
+                ui: Some(UiWidgetSetupData::InputText),
             })
             .unwrap();
     });
