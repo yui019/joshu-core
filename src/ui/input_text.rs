@@ -64,7 +64,7 @@ impl UiWidget for InputText {
         }
     }
 
-    fn setup(&mut self, ctx: &mut ggez::Context, data: Self::SetupData) {
+    fn setup(&mut self, ctx: &mut ggez::Context, _data: Self::SetupData) {
         // reset input width
         rect_mesh_set_w(ctx, &mut self.background_rect, Color::WHITE, TEXT_MIN_WIDTH);
         rect_mesh_set_x(
@@ -205,8 +205,6 @@ impl UiWidget for InputText {
         let text_rect = self.displayed_text.dimensions(&ctx.gfx).unwrap();
         let new_width = text_rect.w + (2.0 * TEXT_HORIZONTAL_PADDING);
         if new_width >= TEXT_MIN_WIDTH {
-            let background_rect = self.background_rect.dimensions(&ctx.gfx).unwrap();
-
             rect_mesh_set_w(ctx, &mut self.background_rect, Color::WHITE, new_width);
             rect_mesh_set_x(
                 ctx,
