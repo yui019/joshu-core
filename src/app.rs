@@ -3,18 +3,18 @@ use std::sync::mpsc::Receiver;
 use ggez::{
     event::EventHandler,
     glam::Vec2,
-    graphics::{Canvas, Color, DrawParam, Image},
+    graphics::{Color, DrawParam, Image},
     winit::event::VirtualKeyCode,
     Context, GameResult,
 };
 
-use crate::{message::Message, textbox::Textbox, ui::Ui, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{canvas::Canvas, message::Message, textbox::Textbox, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub struct App {
     input_receiver: Receiver<Message>,
     default_avatar_image: Image,
     textbox: Textbox,
-    ui: Ui,
+    canvas: Canvas,
 }
 
 impl App {
@@ -24,13 +24,11 @@ impl App {
 
         let textbox = Textbox::new(ctx, default_avatar_image.width() as f32);
 
-        let ui = Ui::new(ctx);
-
         App {
             input_receiver,
             default_avatar_image,
             textbox,
-            ui,
+            canvas: Canvas::new(ctx),
         }
     }
 
@@ -42,7 +40,7 @@ impl App {
             None => self.textbox.hide(),
         }
 
-        self.ui.set_type(ctx, message.ui);
+        self.canvas.set_mode(ctx, message.canvas_mode);
     }
 }
 
@@ -61,7 +59,7 @@ impl EventHandler for App {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = Canvas::from_frame(ctx, Color::new(0.0, 0.0, 0.0, 0.0));
+        let mut canvas = ggez::graphics::Canvas::from_frame(ctx, Color::new(0.0, 0.0, 0.0, 0.0));
 
         self.textbox.draw(&mut canvas);
 
@@ -73,7 +71,7 @@ impl EventHandler for App {
             )),
         );
 
-        self.ui.draw(ctx, &mut canvas);
+        self.canvas.draw(ctx, &mut canvas);
 
         canvas.finish(ctx)
     }
@@ -85,7 +83,7 @@ impl EventHandler for App {
         _repeated: bool,
     ) -> Result<(), ggez::GameError> {
         match input.keycode {
-            Some(VirtualKeyCode::Back) => self.ui.handle_backspace(ctx),
+            Some(VirtualKeyCode::Back) => self.canvas.handle_backspace(ctx),
 
             Some(VirtualKeyCode::Escape) => ctx.request_quit(),
             _ => {}
@@ -94,7 +92,7 @@ impl EventHandler for App {
     }
 
     fn text_input_event(&mut self, ctx: &mut Context, ch: char) -> Result<(), ggez::GameError> {
-        self.ui.handle_text_input(ctx, ch);
+        self.canvas.handle_text_input(ctx, ch);
 
         Ok(())
     }
