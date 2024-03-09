@@ -4,15 +4,16 @@ use ggez::{
 };
 use serde::{Deserialize, Serialize};
 
-use self::input_text::InputTextHandler;
+use self::input_text::{InputTextConfig, InputTextHandler};
 
 mod input_text;
 
 trait CanvasModeHandler {
+    type ConfigData;
     type SetupData;
 
     // called to initialize data needed for every use (like fonts, etc.)
-    fn new(ctx: &mut Context) -> Self;
+    fn new(ctx: &mut Context, config: Self::ConfigData) -> Self;
 
     // called to set the widget up (with data like the width, height, etc.)
     fn setup(&mut self, ggez_ctx: &mut Context, data: Self::SetupData);
@@ -61,7 +62,7 @@ impl Canvas {
         Self {
             ctx: CanvasContext { rect_mesh },
             current_mode: None,
-            handler_input_text: InputTextHandler::new(ggez_ctx),
+            handler_input_text: InputTextHandler::new(ggez_ctx, InputTextConfig::default()),
         }
     }
 

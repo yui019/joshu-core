@@ -9,19 +9,40 @@ use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::CanvasModeHandler;
 
-const TEXT_MIN_WIDTH: f32 = 500.0;
-const TEXT_MAX_WIDTH: f32 = 1800.0;
-const TEXT_FONT_SIZE: f32 = 32.0;
-const TEXT_HORIZONTAL_PADDING: f32 = 10.0;
-const TEXT_VERTICAL_PADDING: f32 = 15.0;
-const TEXT_DEFAULT_PLACEHOLDER: &str = "Enter text...";
-const TEXT_PLACEHOLDER_ALPHA: f32 = 0.7; // from 0 to 1
-const TEXT_COLOR: Color = Color::BLACK;
-const BACKGROUND_OUTLINE_WIDTH: f32 = 2.0;
-const BACKGROUND_OUTLINE_COLOR: Color = Color::BLACK;
-const BACKGROUND_COLOR: Color = Color::WHITE;
+pub struct InputTextConfig {
+    text_min_width: f32,
+    text_max_width: f32,
+    text_font_size: f32,
+    text_horizontal_padding: f32,
+    text_vertical_padding: f32,
+    text_default_placeholder: &'static str,
+    text_placeholder_alpha: f32, // from 0 to 1
+    text_color: Color,
+    background_outline_width: f32,
+    background_outline_color: Color,
+    background_color: Color,
+}
+
+impl Default for InputTextConfig {
+    fn default() -> Self {
+        Self {
+            text_min_width: 500.0,
+            text_max_width: 1800.0,
+            text_font_size: 32.0,
+            text_horizontal_padding: 10.0,
+            text_vertical_padding: 15.0,
+            text_default_placeholder: "Enter text...",
+            text_placeholder_alpha: 0.7,
+            text_color: Color::BLACK,
+            background_outline_width: 2.0,
+            background_outline_color: Color::BLACK,
+            background_color: Color::WHITE,
+        }
+    }
+}
 
 pub struct InputTextHandler {
+    config: InputTextConfig,
     background_rect: Rect,
     placeholder_text: Text,
     displayed_text: Text,
@@ -29,12 +50,13 @@ pub struct InputTextHandler {
 }
 
 impl CanvasModeHandler for InputTextHandler {
+    type ConfigData = InputTextConfig;
     type SetupData = ();
 
-    fn new(_ggez_ctx: &mut ggez::Context) -> Self {
+    fn new(_ggez_ctx: &mut ggez::Context, config: Self::ConfigData) -> Self {
         let background_rect = {
-            let width = TEXT_MIN_WIDTH;
-            let height = TEXT_FONT_SIZE + (2.0 * TEXT_VERTICAL_PADDING);
+            let width = config.text_min_width;
+            let height = config.text_font_size + (2.0 * config.text_vertical_padding);
 
             Rect::new(
                 SCREEN_WIDTH / 2.0 - width / 2.0,
@@ -44,17 +66,18 @@ impl CanvasModeHandler for InputTextHandler {
             )
         };
 
-        let mut placeholder_color = TEXT_COLOR;
-        placeholder_color.a = TEXT_PLACEHOLDER_ALPHA;
+        let mut placeholder_color = config.text_color;
+        placeholder_color.a = config.text_placeholder_alpha;
 
         let placeholder_text = Text::new(TextFragment {
-            text: TEXT_DEFAULT_PLACEHOLDER.to_string(),
+            text: config.text_default_placeholder.to_string(),
             color: Some(placeholder_color),
-            scale: Some(PxScale::from(TEXT_FONT_SIZE)),
+            scale: Some(PxScale::from(config.text_font_size)),
             ..Default::default()
         });
 
         Self {
+            config,
             background_rect,
             placeholder_text,
             displayed_text: Text::new(""),
@@ -64,8 +87,8 @@ impl CanvasModeHandler for InputTextHandler {
 
     fn setup(&mut self, _ggez_ctx: &mut ggez::Context, _data: Self::SetupData) {
         // reset background rect
-        self.background_rect.w = TEXT_MIN_WIDTH;
-        self.background_rect.x = SCREEN_WIDTH / 2.0 - TEXT_MIN_WIDTH / 2.0;
+        self.background_rect.w = self.config.text_min_width;
+        self.background_rect.x = SCREEN_WIDTH / 2.0 - self.config.text_min_width / 2.0;
 
         // reset text
         self.displayed_text = Text::new("");
@@ -80,16 +103,16 @@ impl CanvasModeHandler for InputTextHandler {
     ) {
         // draw background outline
         let mut outline_rect = self.background_rect;
-        outline_rect.x -= BACKGROUND_OUTLINE_WIDTH;
-        outline_rect.y -= BACKGROUND_OUTLINE_WIDTH;
-        outline_rect.w += 2.0 * BACKGROUND_OUTLINE_WIDTH;
-        outline_rect.h += 2.0 * BACKGROUND_OUTLINE_WIDTH;
+        outline_rect.x -= self.config.background_outline_width;
+        outline_rect.y -= self.config.background_outline_width;
+        outline_rect.w += 2.0 * self.config.background_outline_width;
+        outline_rect.h += 2.0 * self.config.background_outline_width;
 
         ggez_canvas.draw(
             &canvas_ctx.rect_mesh,
             DrawParam::new()
                 .dest_rect(outline_rect)
-                .color(BACKGROUND_OUTLINE_COLOR),
+                .color(self.config.background_outline_color),
         );
 
         // draw background
@@ -97,11 +120,12 @@ impl CanvasModeHandler for InputTextHandler {
             &canvas_ctx.rect_mesh,
             DrawParam::new()
                 .dest_rect(self.background_rect)
-                .color(BACKGROUND_COLOR),
+                .color(self.config.background_color),
         );
 
-        let text_x = self.background_rect.x + TEXT_HORIZONTAL_PADDING;
-        let text_y = self.background_rect.y + self.background_rect.h / 2.0 - (TEXT_FONT_SIZE / 2.0);
+        let text_x = self.background_rect.x + self.config.text_horizontal_padding;
+        let text_y = self.background_rect.y + self.background_rect.h / 2.0
+            - (self.config.text_font_size / 2.0);
 
         if self.entire_text.len() == 0 {
             // display placeholder if there's no inputted text
@@ -131,17 +155,17 @@ impl CanvasModeHandler for InputTextHandler {
         self.displayed_text.add(TextFragment {
             text: inputted_char.to_string(),
             color: Some(Color::BLACK),
-            scale: Some(PxScale::from(TEXT_FONT_SIZE)),
+            scale: Some(PxScale::from(self.config.text_font_size)),
             ..Default::default()
         });
 
         // handle text overflowing the input field
         let text_rect = self.displayed_text.dimensions(&ggez_ctx.gfx).unwrap();
 
-        if text_rect.w + (2.0 * TEXT_HORIZONTAL_PADDING) >= self.background_rect.w {
-            let new_width = text_rect.w + (2.0 * TEXT_HORIZONTAL_PADDING);
+        if text_rect.w + (2.0 * self.config.text_horizontal_padding) >= self.background_rect.w {
+            let new_width = text_rect.w + (2.0 * self.config.text_horizontal_padding);
 
-            if new_width <= TEXT_MAX_WIDTH {
+            if new_width <= self.config.text_max_width {
                 // just expand the input field if there's still space left
                 self.background_rect.w = new_width;
                 self.background_rect.x = SCREEN_WIDTH / 2.0 - new_width / 2.0;
@@ -159,7 +183,7 @@ impl CanvasModeHandler for InputTextHandler {
                         new_text.add(TextFragment {
                             text,
                             color: Some(Color::BLACK),
-                            scale: Some(PxScale::from(TEXT_FONT_SIZE)),
+                            scale: Some(PxScale::from(self.config.text_font_size)),
                             ..Default::default()
                         });
                     }
@@ -193,7 +217,7 @@ impl CanvasModeHandler for InputTextHandler {
                     new_text.add(TextFragment {
                         text,
                         color: Some(Color::BLACK),
-                        scale: Some(PxScale::from(TEXT_FONT_SIZE)),
+                        scale: Some(PxScale::from(self.config.text_font_size)),
                         ..Default::default()
                     });
                 }
@@ -215,8 +239,8 @@ impl CanvasModeHandler for InputTextHandler {
 
         // reduce input width (up to the minimum)
         let text_rect = self.displayed_text.dimensions(&ggez_ctx.gfx).unwrap();
-        let new_width = text_rect.w + (2.0 * TEXT_HORIZONTAL_PADDING);
-        if new_width >= TEXT_MIN_WIDTH {
+        let new_width = text_rect.w + (2.0 * self.config.text_horizontal_padding);
+        if new_width >= self.config.text_min_width {
             self.background_rect.w = new_width;
             self.background_rect.x = SCREEN_WIDTH / 2.0 - new_width / 2.0;
         }
