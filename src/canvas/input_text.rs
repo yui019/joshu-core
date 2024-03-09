@@ -10,17 +10,17 @@ use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use super::CanvasModeHandler;
 
 pub struct InputTextConfig {
-    text_min_width: f32,
-    text_max_width: f32,
-    text_font_size: f32,
-    text_horizontal_padding: f32,
-    text_vertical_padding: f32,
-    text_default_placeholder: &'static str,
-    text_placeholder_alpha: f32, // from 0 to 1
-    text_color: Color,
-    background_outline_width: f32,
-    background_outline_color: Color,
-    background_color: Color,
+    pub text_min_width: f32,
+    pub text_max_width: f32,
+    pub text_font_size: f32,
+    pub text_horizontal_padding: f32,
+    pub text_vertical_padding: f32,
+    pub text_default_placeholder: &'static str,
+    pub text_placeholder_alpha: f32, // from 0 to 1
+    pub text_color: Color,
+    pub background_outline_width: f32,
+    pub background_outline_color: Color,
+    pub background_color: Color,
 }
 
 impl Default for InputTextConfig {
