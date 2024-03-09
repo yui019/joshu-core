@@ -1,4 +1,4 @@
-use ggez::conf::WindowMode;
+use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event::{self};
 use ggez::ContextBuilder;
 use joshu_core::app::App;
@@ -16,6 +16,10 @@ fn main() {
     let resource_dir = path::PathBuf::from("./res");
 
     let (mut ctx, event_loop) = ContextBuilder::new("Joshu", "")
+        .window_setup(WindowSetup {
+            title: String::from("Project Joshu"),
+            ..Default::default()
+        })
         .window_mode(WindowMode {
             width: SCREEN_WIDTH,
             height: SCREEN_HEIGHT,
