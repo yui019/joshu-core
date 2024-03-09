@@ -17,6 +17,8 @@ const TEXT_VERTICAL_PADDING: f32 = 15.0;
 const TEXT_DEFAULT_PLACEHOLDER: &str = "Enter text...";
 const TEXT_PLACEHOLDER_ALPHA: f32 = 0.7; // from 0 to 1
 const TEXT_COLOR: Color = Color::BLACK;
+const BACKGROUND_OUTLINE_WIDTH: f32 = 2.0;
+const BACKGROUND_OUTLINE_COLOR: Color = Color::BLACK;
 const BACKGROUND_COLOR: Color = Color::WHITE;
 
 pub struct InputTextHandler {
@@ -76,6 +78,21 @@ impl CanvasModeHandler for InputTextHandler {
         ggez_canvas: &mut ggez::graphics::Canvas,
         canvas_ctx: &super::CanvasContext,
     ) {
+        // draw background outline
+        let mut outline_rect = self.background_rect;
+        outline_rect.x -= BACKGROUND_OUTLINE_WIDTH;
+        outline_rect.y -= BACKGROUND_OUTLINE_WIDTH;
+        outline_rect.w += 2.0 * BACKGROUND_OUTLINE_WIDTH;
+        outline_rect.h += 2.0 * BACKGROUND_OUTLINE_WIDTH;
+
+        ggez_canvas.draw(
+            &canvas_ctx.rect_mesh,
+            DrawParam::new()
+                .dest_rect(outline_rect)
+                .color(BACKGROUND_OUTLINE_COLOR),
+        );
+
+        // draw background
         ggez_canvas.draw(
             &canvas_ctx.rect_mesh,
             DrawParam::new()
