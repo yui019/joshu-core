@@ -60,7 +60,18 @@ fn run_input_receiver() -> Receiver<Message> {
                 id: None,
                 avatar_emotion: None,
                 textbox_text: Some(buffer.trim().to_string()),
-                canvas_mode: Some(CanvasMode::InputText),
+                canvas_mode: Some(CanvasMode::Select(vec![
+                    "Option 1".to_string(),
+                    "Option 2".to_string(),
+                    "Option 3".to_string(),
+                    "Option 4".to_string(),
+                    "Option 5".to_string(),
+                    "Option 6".to_string(),
+                    "Option 7".to_string(),
+                    "Option 8".to_string(),
+                    "Option 9".to_string(),
+                    "Option 10".to_string(),
+                ])),
             })
             .unwrap();
     });

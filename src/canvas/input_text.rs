@@ -9,6 +9,7 @@ use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::CanvasModeHandler;
 
+#[derive(Clone)]
 pub struct InputTextConfig {
     pub text_min_width: f32,
     pub text_max_width: f32,
@@ -21,6 +22,8 @@ pub struct InputTextConfig {
     pub background_outline_width: f32,
     pub background_outline_color: Color,
     pub background_color: Color,
+    pub y_position: f32,
+    pub x_position: f32,
 }
 
 impl Default for InputTextConfig {
@@ -37,30 +40,57 @@ impl Default for InputTextConfig {
             background_outline_width: 2.0,
             background_outline_color: Color::BLACK,
             background_color: Color::WHITE,
+            y_position: SCREEN_HEIGHT / 2.0,
+            x_position: SCREEN_WIDTH / 2.0,
         }
     }
 }
 
 pub struct InputTextHandler {
-    config: InputTextConfig,
-    background_rect: Rect,
-    placeholder_text: Text,
-    displayed_text: Text,
-    entire_text: String,
+    pub config: InputTextConfig,
+    pub background_rect: Rect,
+    pub placeholder_text: Text,
+    pub displayed_text: Text,
+    pub entire_text: String,
+}
+
+impl InputTextHandler {
+    pub fn get_outline_rect(&self) -> Rect {
+        let mut outline_rect = self.background_rect;
+        outline_rect.x -= self.config.background_outline_width;
+        outline_rect.y -= self.config.background_outline_width;
+        outline_rect.w += 2.0 * self.config.background_outline_width;
+        outline_rect.h += 2.0 * self.config.background_outline_width;
+
+        outline_rect
+    }
+
+    // Get the initial background rect that would be created with the given config when you call self.new
+    pub fn get_initial_background_rect(config: &InputTextConfig) -> Rect {
+        let width = config.text_min_width;
+        let height = config.text_font_size + (2.0 * config.text_vertical_padding);
+
+        Rect::new(
+            config.x_position - width / 2.0,
+            config.y_position - height / 2.0,
+            width,
+            height,
+        )
+    }
 }
 
 impl CanvasModeHandler for InputTextHandler {
     type ConfigData = InputTextConfig;
     type SetupData = ();
 
-    fn new(_ggez_ctx: &mut ggez::Context, config: Self::ConfigData) -> Self {
+    fn new(_ggez_ctx: &mut ggez::Context, config: &Self::ConfigData) -> Self {
         let background_rect = {
             let width = config.text_min_width;
             let height = config.text_font_size + (2.0 * config.text_vertical_padding);
 
             Rect::new(
-                SCREEN_WIDTH / 2.0 - width / 2.0,
-                SCREEN_HEIGHT / 2.0 - height / 2.0,
+                config.x_position - width / 2.0,
+                config.y_position - height / 2.0,
                 width,
                 height,
             )
@@ -77,7 +107,7 @@ impl CanvasModeHandler for InputTextHandler {
         });
 
         Self {
-            config,
+            config: config.clone(),
             background_rect,
             placeholder_text,
             displayed_text: Text::new(""),
@@ -88,7 +118,7 @@ impl CanvasModeHandler for InputTextHandler {
     fn setup(&mut self, _ggez_ctx: &mut ggez::Context, _data: Self::SetupData) {
         // reset background rect
         self.background_rect.w = self.config.text_min_width;
-        self.background_rect.x = SCREEN_WIDTH / 2.0 - self.config.text_min_width / 2.0;
+        self.background_rect.x = self.config.x_position - self.config.text_min_width / 2.0;
 
         // reset text
         self.displayed_text = Text::new("");
@@ -102,25 +132,17 @@ impl CanvasModeHandler for InputTextHandler {
         canvas_ctx: &super::CanvasContext,
     ) {
         // draw background outline
-        let mut outline_rect = self.background_rect;
-        outline_rect.x -= self.config.background_outline_width;
-        outline_rect.y -= self.config.background_outline_width;
-        outline_rect.w += 2.0 * self.config.background_outline_width;
-        outline_rect.h += 2.0 * self.config.background_outline_width;
-
-        ggez_canvas.draw(
-            &canvas_ctx.rect_mesh,
-            DrawParam::new()
-                .dest_rect(outline_rect)
-                .color(self.config.background_outline_color),
+        canvas_ctx.draw_rect(
+            ggez_canvas,
+            &self.get_outline_rect(),
+            &self.config.background_outline_color,
         );
 
         // draw background
-        ggez_canvas.draw(
-            &canvas_ctx.rect_mesh,
-            DrawParam::new()
-                .dest_rect(self.background_rect)
-                .color(self.config.background_color),
+        canvas_ctx.draw_rect(
+            ggez_canvas,
+            &self.background_rect,
+            &self.config.background_color,
         );
 
         let text_x = self.background_rect.x + self.config.text_horizontal_padding;
@@ -168,7 +190,7 @@ impl CanvasModeHandler for InputTextHandler {
             if new_width <= self.config.text_max_width {
                 // just expand the input field if there's still space left
                 self.background_rect.w = new_width;
-                self.background_rect.x = SCREEN_WIDTH / 2.0 - new_width / 2.0;
+                self.background_rect.x = self.config.x_position - new_width / 2.0;
             } else {
                 // if the input field is already maximally expanded, then scroll the text so its end is visible
                 self.displayed_text = {
@@ -242,7 +264,7 @@ impl CanvasModeHandler for InputTextHandler {
         let new_width = text_rect.w + (2.0 * self.config.text_horizontal_padding);
         if new_width >= self.config.text_min_width {
             self.background_rect.w = new_width;
-            self.background_rect.x = SCREEN_WIDTH / 2.0 - new_width / 2.0;
+            self.background_rect.x = self.config.x_position - new_width / 2.0;
         }
     }
 }
