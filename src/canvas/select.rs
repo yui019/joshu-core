@@ -32,7 +32,7 @@ impl Default for SelectConfig {
             x_position: SCREEN_WIDTH / 2.0,
             y_position: SCREEN_HEIGHT / 2.0,
             text_color: Color::BLACK,
-            background_outline_width: 2.0,
+            background_outline_width: 5.0,
             background_outline_color: Color::BLACK,
             background_color: Color::WHITE,
             selected_option_background_color: Color::from_rgba(0, 0, 0, 100),
@@ -104,10 +104,9 @@ impl CanvasModeHandler for SelectHandler {
     fn new(ctx: &mut ggez::Context, config: &Self::ConfigData) -> Self {
         let mut config = config.clone();
 
+        let input_text_background =
+            InputTextHandler::get_initial_background_rect(&config.input_text_config);
         let background_rect = {
-            let input_text_background =
-                InputTextHandler::get_initial_background_rect(&config.input_text_config);
-
             let option_height = config.input_text_config.text_font_size
                 + (2.0 * config.input_text_config.text_vertical_padding);
 
@@ -123,7 +122,7 @@ impl CanvasModeHandler for SelectHandler {
         };
 
         // Set the input text's y position to the top of the entire background rect
-        config.input_text_config.y_position = background_rect.y;
+        config.input_text_config.y_position = background_rect.y + input_text_background.h / 2.0;
 
         let input_text_handler = InputTextHandler::new(ctx, &config.input_text_config);
 
@@ -208,6 +207,7 @@ impl CanvasModeHandler for SelectHandler {
                     + font_size / 2.0
                     + input_height
                     + input_outline
+                    + vertical_padding
                     + (selected_option as f32) * (font_size + 2.0 * vertical_padding);
 
                 let rect = Rect::new(
@@ -242,7 +242,7 @@ impl CanvasModeHandler for SelectHandler {
                 + font_size / 2.0
                 + input_height
                 + input_outline
-                + vertical_padding
+                + 2.0 * vertical_padding
                 + (i as f32) * (font_size + 2.0 * vertical_padding);
 
             ggez_canvas.draw(
