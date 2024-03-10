@@ -14,7 +14,7 @@ use super::{
 #[derive(Clone)]
 pub struct SelectConfig {
     pub input_text_config: InputTextConfig,
-    pub max_options_shown: u32,
+    pub max_options_shown: usize,
     pub x_position: f32,
     pub y_position: f32,
     pub text_color: Color,
@@ -81,7 +81,7 @@ impl SelectHandler {
             if Self::strings_match(option, query) {
                 self.filtered_options_indexes.push(i);
 
-                if num_visible < self.config.max_options_shown as usize {
+                if num_visible < self.config.max_options_shown {
                     self.filtered_options_visible_indexes.push(i);
                     num_visible += 1;
                 }
@@ -161,7 +161,7 @@ impl CanvasModeHandler for SelectHandler {
         for i in 0..self.all_options.len() {
             self.filtered_options_indexes.push(i);
 
-            if i < self.config.max_options_shown as usize {
+            if i < self.config.max_options_shown {
                 self.filtered_options_visible_indexes.push(i);
             }
         }
