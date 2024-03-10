@@ -17,6 +17,11 @@ pub struct SelectConfig {
     pub max_options_shown: u32,
     pub x_position: f32,
     pub y_position: f32,
+    pub text_color: Color,
+    pub background_outline_width: f32,
+    pub background_outline_color: Color,
+    pub background_color: Color,
+    pub selected_option_background_color: Color,
 }
 
 impl Default for SelectConfig {
@@ -26,6 +31,11 @@ impl Default for SelectConfig {
             max_options_shown: 5,
             x_position: SCREEN_WIDTH / 2.0,
             y_position: SCREEN_HEIGHT / 2.0,
+            text_color: Color::BLACK,
+            background_outline_width: 2.0,
+            background_outline_color: Color::BLACK,
+            background_color: Color::WHITE,
+            selected_option_background_color: Color::from_rgba(0, 0, 0, 100),
         }
     }
 }
@@ -42,6 +52,16 @@ pub struct SelectHandler {
 }
 
 impl SelectHandler {
+    pub fn get_outline_rect(&self) -> Rect {
+        let mut outline_rect = self.background_rect;
+        outline_rect.x -= self.config.background_outline_width;
+        outline_rect.y -= self.config.background_outline_width;
+        outline_rect.w += 2.0 * self.config.background_outline_width;
+        outline_rect.h += 2.0 * self.config.background_outline_width;
+
+        outline_rect
+    }
+
     fn strings_match(original: &str, query: &str) -> bool {
         let lowercase_original = original.trim().to_lowercase();
         let lowercase_query = query.trim().to_lowercase();
@@ -129,7 +149,7 @@ impl CanvasModeHandler for SelectHandler {
 
             let fragment = TextFragment {
                 text: option,
-                color: Some(Color::BLACK),
+                color: Some(self.config.text_color),
                 scale: Some(PxScale::from(self.input_text_handler.config.text_font_size)),
                 ..Default::default()
             };
@@ -156,8 +176,19 @@ impl CanvasModeHandler for SelectHandler {
         ggez_canvas: &mut ggez::graphics::Canvas,
         canvas_ctx: &super::CanvasContext,
     ) {
+        // draw select background outline
+        canvas_ctx.draw_rect(
+            ggez_canvas,
+            &self.get_outline_rect(),
+            &self.config.background_outline_color,
+        );
+
         // draw select background
-        canvas_ctx.draw_rect(ggez_canvas, &self.background_rect, &Color::WHITE);
+        canvas_ctx.draw_rect(
+            ggez_canvas,
+            &self.background_rect,
+            &self.config.background_color,
+        );
 
         // draw input text
         self.input_text_handler
@@ -186,7 +217,11 @@ impl CanvasModeHandler for SelectHandler {
                     font_size + 2.0 * vertical_padding,
                 );
 
-                canvas_ctx.draw_rect(ggez_canvas, &rect, &Color::from_rgba(0, 0, 0, 100));
+                canvas_ctx.draw_rect(
+                    ggez_canvas,
+                    &rect,
+                    &self.config.selected_option_background_color,
+                );
             }
 
             None => {}
