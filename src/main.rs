@@ -2,7 +2,6 @@ use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event::{self};
 use ggez::ContextBuilder;
 use joshu_core::app::App;
-use joshu_core::canvas::CanvasMode;
 use joshu_core::message::Message;
 use joshu_core::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use std::path;
