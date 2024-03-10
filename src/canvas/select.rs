@@ -32,7 +32,7 @@ impl Default for SelectConfig {
             x_position: SCREEN_WIDTH / 2.0,
             y_position: SCREEN_HEIGHT / 2.0,
             text_color: Color::BLACK,
-            background_outline_width: 5.0,
+            background_outline_width: 2.0,
             background_outline_color: Color::BLACK,
             background_color: Color::WHITE,
             selected_option_background_color: Color::from_rgba(0, 0, 0, 100),
