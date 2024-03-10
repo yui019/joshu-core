@@ -1,6 +1,9 @@
+use std::cmp;
+
 use ggez::{
     glam::Vec2,
     graphics::{Color, DrawParam, PxScale, Rect, Text, TextFragment},
+    winit::event::VirtualKeyCode,
 };
 
 use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -37,6 +40,7 @@ pub struct SelectHandler {
     pub all_options: Vec<Text>,
     pub filtered_options_indexes: Vec<usize>,
     pub filtered_options_visible_indexes: Vec<usize>,
+    pub selected_option: Option<usize>, // from 0 to filtered_options_visible_indexes.len()
 }
 
 impl SelectHandler {
@@ -64,6 +68,13 @@ impl SelectHandler {
                     num_visible += 1;
                 }
             }
+        }
+
+        // reset selected option
+        if self.filtered_options_visible_indexes.is_empty() {
+            self.selected_option = None;
+        } else {
+            self.selected_option = Some(0);
         }
     }
 }
@@ -106,6 +117,7 @@ impl CanvasModeHandler for SelectHandler {
             all_options_strings: vec![],
             filtered_options_indexes: vec![],
             filtered_options_visible_indexes: vec![],
+            selected_option: None,
         }
     }
 
@@ -136,6 +148,8 @@ impl CanvasModeHandler for SelectHandler {
                 self.filtered_options_visible_indexes.push(i);
             }
         }
+
+        self.selected_option = Some(0);
     }
 
     fn draw(
@@ -144,11 +158,43 @@ impl CanvasModeHandler for SelectHandler {
         ggez_canvas: &mut ggez::graphics::Canvas,
         canvas_ctx: &super::CanvasContext,
     ) {
+        // draw select background
         canvas_ctx.draw_rect(ggez_canvas, &self.background_rect, &Color::WHITE);
 
+        // draw input text
         self.input_text_handler
             .draw(ggez_ctx, ggez_canvas, canvas_ctx);
 
+        // draw selected option background
+        match self.selected_option {
+            Some(selected_option) => {
+                let vertical_padding = self.input_text_handler.config.text_vertical_padding;
+                let font_size = self.input_text_handler.config.text_font_size;
+                let input_height = self.input_text_handler.background_rect.h;
+                let input_outline = self.input_text_handler.config.background_outline_width;
+
+                let x = self.background_rect.x;
+
+                let y = self.background_rect.y - input_height / 2.0
+                    + font_size / 2.0
+                    + input_height
+                    + input_outline
+                    + (selected_option as f32) * (font_size + 2.0 * vertical_padding);
+
+                let rect = Rect::new(
+                    x,
+                    y,
+                    self.background_rect.w,
+                    font_size + 2.0 * vertical_padding,
+                );
+
+                canvas_ctx.draw_rect(ggez_canvas, &rect, &Color::from_rgba(0, 0, 0, 100));
+            }
+
+            None => {}
+        }
+
+        // draw all options
         let mut i = 0;
         for option_index in &self.filtered_options_visible_indexes {
             let horizontal_padding = self.input_text_handler.config.text_horizontal_padding;
@@ -192,5 +238,65 @@ impl CanvasModeHandler for SelectHandler {
         self.background_rect.x = self.input_text_handler.background_rect.x;
 
         self.filter_options();
+    }
+
+    fn handle_arrow_key(&mut self, _ggez_ctx: &ggez::Context, keycode: VirtualKeyCode) {
+        match keycode {
+            VirtualKeyCode::Up => match self.selected_option {
+                Some(selected_option) => {
+                    if selected_option > 0 {
+                        self.selected_option = Some(selected_option - 1);
+                    } else {
+                        let visible_first = self.filtered_options_visible_indexes.first().unwrap();
+                        let mut start = 0;
+                        for (i, option) in self.filtered_options_indexes.iter().enumerate() {
+                            if option == visible_first {
+                                start = i;
+                                break;
+                            }
+                        }
+
+                        let new_index = start as i32 - 1;
+                        if new_index >= 0 {
+                            let new_first_option = self.filtered_options_indexes[start - 1];
+                            self.filtered_options_visible_indexes
+                                .insert(0, new_first_option);
+
+                            let last_index = self.filtered_options_visible_indexes.len() - 1;
+                            self.filtered_options_visible_indexes.remove(last_index);
+                        }
+                    }
+                }
+
+                None => {}
+            },
+
+            VirtualKeyCode::Down => match self.selected_option {
+                Some(selected_option) => {
+                    if selected_option < self.filtered_options_visible_indexes.len() - 1 {
+                        self.selected_option = Some(selected_option + 1);
+                    } else {
+                        let visible_last = self.filtered_options_visible_indexes.last().unwrap();
+                        let mut end = 0;
+                        for (i, option) in self.filtered_options_indexes.iter().enumerate() {
+                            if option == visible_last {
+                                end = i;
+                                break;
+                            }
+                        }
+
+                        if end + 1 < self.filtered_options_indexes.len() {
+                            let new_last_option = self.filtered_options_indexes[end + 1];
+                            self.filtered_options_visible_indexes.push(new_last_option);
+                            self.filtered_options_visible_indexes.remove(0);
+                        }
+                    }
+                }
+
+                None => {}
+            },
+
+            _ => {}
+        }
     }
 }

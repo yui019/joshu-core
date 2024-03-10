@@ -267,4 +267,11 @@ impl CanvasModeHandler for InputTextHandler {
             self.background_rect.x = self.config.x_position - new_width / 2.0;
         }
     }
+
+    fn handle_arrow_key(
+        &mut self,
+        ggez_ctx: &ggez::Context,
+        keycode: ggez::input::keyboard::KeyCode,
+    ) {
+    }
 }

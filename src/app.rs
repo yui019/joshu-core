@@ -86,6 +86,14 @@ impl EventHandler for App {
             Some(VirtualKeyCode::Back) => self.canvas.handle_backspace(ctx),
 
             Some(VirtualKeyCode::Escape) => ctx.request_quit(),
+
+            Some(VirtualKeyCode::Left)
+            | Some(VirtualKeyCode::Right)
+            | Some(VirtualKeyCode::Up)
+            | Some(VirtualKeyCode::Down) => {
+                self.canvas.handle_arrow_key(&ctx, input.keycode.unwrap())
+            }
+
             _ => {}
         }
         Ok(())

@@ -1,5 +1,6 @@
 use ggez::{
     graphics::{Color, DrawMode, DrawParam, Mesh, Rect},
+    winit::event::VirtualKeyCode,
     Context,
 };
 use serde::{Deserialize, Serialize};
@@ -32,6 +33,8 @@ trait CanvasModeHandler {
     fn handle_text_input(&mut self, ggez_ctx: &Context, inputted_char: char);
 
     fn handle_backspace(&mut self, ggez_ctx: &Context);
+
+    fn handle_arrow_key(&mut self, ggez_ctx: &Context, keycode: VirtualKeyCode);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,6 +132,18 @@ impl Canvas {
             Some(CanvasMode::InputText) => self.handler_input_text.handle_backspace(ggez_ctx),
 
             Some(CanvasMode::Select(_)) => self.handler_select.handle_backspace(ggez_ctx),
+
+            None => {}
+        }
+    }
+
+    pub fn handle_arrow_key(&mut self, ggez_ctx: &Context, keycode: VirtualKeyCode) {
+        match self.current_mode {
+            Some(CanvasMode::InputText) => {
+                self.handler_input_text.handle_arrow_key(ggez_ctx, keycode)
+            }
+
+            Some(CanvasMode::Select(_)) => self.handler_select.handle_arrow_key(ggez_ctx, keycode),
 
             None => {}
         }
