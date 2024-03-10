@@ -270,8 +270,8 @@ impl CanvasModeHandler for InputTextHandler {
 
     fn handle_arrow_key(
         &mut self,
-        ggez_ctx: &ggez::Context,
-        keycode: ggez::input::keyboard::KeyCode,
+        _ggez_ctx: &ggez::Context,
+        _keycode: ggez::input::keyboard::KeyCode,
     ) {
     }
 }

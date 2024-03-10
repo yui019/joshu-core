@@ -1,5 +1,3 @@
-use std::cmp;
-
 use ggez::{
     glam::Vec2,
     graphics::{Color, DrawParam, PxScale, Rect, Text, TextFragment},
