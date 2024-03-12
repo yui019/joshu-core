@@ -1,9 +1,13 @@
+use std::sync::mpsc::Sender;
+
 use ggez::{
     graphics::{Color, DrawMode, DrawParam, Mesh, Rect},
     winit::event::VirtualKeyCode,
     Context,
 };
 use serde::{Deserialize, Serialize};
+
+use crate::app::FinishedMessage;
 
 use self::{
     input_text::{InputTextConfig, InputTextHandler},
@@ -18,7 +22,11 @@ trait CanvasModeHandler {
     type SetupData;
 
     // called to initialize data needed for every use (like fonts, etc.)
-    fn new(ctx: &mut Context, config: &Self::ConfigData) -> Self;
+    fn new(
+        ctx: &mut Context,
+        config: &Self::ConfigData,
+        finished_sender: Sender<FinishedMessage>,
+    ) -> Self;
 
     // called to set the widget up (with data like the width, height, etc.)
     fn setup(&mut self, ggez_ctx: &mut Context, data: Self::SetupData);
@@ -33,6 +41,8 @@ trait CanvasModeHandler {
     fn handle_text_input(&mut self, ggez_ctx: &Context, inputted_char: char);
 
     fn handle_backspace(&mut self, ggez_ctx: &Context);
+
+    fn handle_enter(&mut self, ggez_ctx: &Context);
 
     fn handle_arrow_key(&mut self, ggez_ctx: &Context, keycode: VirtualKeyCode);
 }
@@ -64,10 +74,11 @@ pub struct Canvas {
     pub current_mode: Option<CanvasMode>,
     pub handler_input_text: InputTextHandler,
     pub handler_select: SelectHandler,
+    pub finished_sender: Sender<FinishedMessage>,
 }
 
 impl Canvas {
-    pub fn new(ggez_ctx: &mut Context) -> Self {
+    pub fn new(ggez_ctx: &mut Context, finished_sender: Sender<FinishedMessage>) -> Self {
         let rect_mesh = Mesh::new_rectangle(
             &ggez_ctx.gfx,
             DrawMode::fill(),
@@ -79,8 +90,17 @@ impl Canvas {
         Self {
             ctx: CanvasContext { rect_mesh },
             current_mode: None,
-            handler_input_text: InputTextHandler::new(ggez_ctx, &InputTextConfig::default()),
-            handler_select: SelectHandler::new(ggez_ctx, &SelectConfig::default()),
+            handler_input_text: InputTextHandler::new(
+                ggez_ctx,
+                &InputTextConfig::default(),
+                finished_sender.clone(),
+            ),
+            handler_select: SelectHandler::new(
+                ggez_ctx,
+                &SelectConfig::default(),
+                finished_sender.clone(),
+            ),
+            finished_sender,
         }
     }
 
@@ -132,6 +152,16 @@ impl Canvas {
             Some(CanvasMode::InputText) => self.handler_input_text.handle_backspace(ggez_ctx),
 
             Some(CanvasMode::Select(_)) => self.handler_select.handle_backspace(ggez_ctx),
+
+            None => {}
+        }
+    }
+
+    pub fn handle_enter(&mut self, ggez_ctx: &Context) {
+        match self.current_mode {
+            Some(CanvasMode::InputText) => self.handler_input_text.handle_enter(ggez_ctx),
+
+            Some(CanvasMode::Select(_)) => self.handler_select.handle_enter(ggez_ctx),
 
             None => {}
         }

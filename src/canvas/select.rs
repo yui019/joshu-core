@@ -1,10 +1,12 @@
+use std::sync::mpsc::Sender;
+
 use ggez::{
     glam::Vec2,
     graphics::{Color, DrawParam, PxScale, Rect, Text, TextFragment},
     winit::event::VirtualKeyCode,
 };
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{app::FinishedMessage, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::{
     input_text::{InputTextConfig, InputTextHandler},
@@ -42,6 +44,7 @@ impl Default for SelectConfig {
 
 pub struct SelectHandler {
     pub config: SelectConfig,
+    pub finished_sender: Sender<FinishedMessage>,
     pub input_text_handler: InputTextHandler,
     pub background_rect: Rect,
     pub all_options_strings: Vec<String>,
@@ -101,7 +104,11 @@ impl CanvasModeHandler for SelectHandler {
     type ConfigData = SelectConfig;
     type SetupData = Vec<String>;
 
-    fn new(ctx: &mut ggez::Context, config: &Self::ConfigData) -> Self {
+    fn new(
+        ctx: &mut ggez::Context,
+        config: &Self::ConfigData,
+        finished_sender: Sender<FinishedMessage>,
+    ) -> Self {
         let mut config = config.clone();
 
         let input_text_background =
@@ -124,10 +131,12 @@ impl CanvasModeHandler for SelectHandler {
         // Set the input text's y position to the top of the entire background rect
         config.input_text_config.y_position = background_rect.y + input_text_background.h / 2.0;
 
-        let input_text_handler = InputTextHandler::new(ctx, &config.input_text_config);
+        let input_text_handler =
+            InputTextHandler::new(ctx, &config.input_text_config, finished_sender.clone());
 
         Self {
             config,
+            finished_sender,
             input_text_handler,
             background_rect,
             all_options: vec![],
@@ -330,6 +339,21 @@ impl CanvasModeHandler for SelectHandler {
             },
 
             _ => {}
+        }
+    }
+
+    fn handle_enter(&mut self, _ggez_ctx: &ggez::Context) {
+        match self.selected_option {
+            Some(selected_option) => {
+                let index = self.filtered_options_visible_indexes[selected_option];
+                let option = self.all_options_strings[index].clone();
+
+                self.finished_sender
+                    .send(FinishedMessage::UserInput(option))
+                    .unwrap();
+            }
+
+            None => {}
         }
     }
 }

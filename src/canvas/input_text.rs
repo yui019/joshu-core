@@ -1,11 +1,11 @@
-use std::str::from_utf8;
+use std::{str::from_utf8, sync::mpsc::Sender};
 
 use ggez::{
     glam::Vec2,
     graphics::{Color, DrawParam, Drawable, PxScale, Rect, Text, TextFragment},
 };
 
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::{app::FinishedMessage, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use super::CanvasModeHandler;
 
@@ -48,6 +48,7 @@ impl Default for InputTextConfig {
 
 pub struct InputTextHandler {
     pub config: InputTextConfig,
+    pub finished_sender: Sender<FinishedMessage>,
     pub background_rect: Rect,
     pub placeholder_text: Text,
     pub displayed_text: Text,
@@ -83,7 +84,11 @@ impl CanvasModeHandler for InputTextHandler {
     type ConfigData = InputTextConfig;
     type SetupData = ();
 
-    fn new(_ggez_ctx: &mut ggez::Context, config: &Self::ConfigData) -> Self {
+    fn new(
+        _ggez_ctx: &mut ggez::Context,
+        config: &Self::ConfigData,
+        finished_sender: Sender<FinishedMessage>,
+    ) -> Self {
         let background_rect = {
             let width = config.text_min_width;
             let height = config.text_font_size + (2.0 * config.text_vertical_padding);
@@ -108,6 +113,7 @@ impl CanvasModeHandler for InputTextHandler {
 
         Self {
             config: config.clone(),
+            finished_sender,
             background_rect,
             placeholder_text,
             displayed_text: Text::new(""),
@@ -273,5 +279,11 @@ impl CanvasModeHandler for InputTextHandler {
         _ggez_ctx: &ggez::Context,
         _keycode: ggez::input::keyboard::KeyCode,
     ) {
+    }
+
+    fn handle_enter(&mut self, _ggez_ctx: &ggez::Context) {
+        self.finished_sender
+            .send(FinishedMessage::UserInput(self.entire_text.clone()))
+            .unwrap();
     }
 }

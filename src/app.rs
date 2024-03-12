@@ -1,4 +1,4 @@
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 use ggez::{
     event::EventHandler,
@@ -10,8 +10,15 @@ use ggez::{
 
 use crate::{canvas::Canvas, message::Message, textbox::Textbox, SCREEN_HEIGHT, SCREEN_WIDTH};
 
+// A message sent to App when a command has finished (textbox finished displaying text or user inputted something when asked)
+pub enum FinishedMessage {
+    Textbox,
+    UserInput(String),
+}
+
 pub struct App {
     input_receiver: Receiver<Message>,
+    finished_receiver: Receiver<FinishedMessage>,
     default_avatar_image: Image,
     textbox: Textbox,
     canvas: Canvas,
@@ -22,20 +29,33 @@ impl App {
         let default_avatar_image = Image::from_path(ctx, "/kurisu/arms_crossed_normal.png")
             .expect("Could not load default kurisu image!");
 
-        let textbox = Textbox::new(ctx, default_avatar_image.width() as f32);
+        let (finished_sender, finished_receiver): (
+            Sender<FinishedMessage>,
+            Receiver<FinishedMessage>,
+        ) = channel();
+
+        let textbox = Textbox::new(
+            ctx,
+            default_avatar_image.width() as f32,
+            finished_sender.clone(),
+        );
+
+        let canvas = Canvas::new(ctx, finished_sender.clone());
 
         App {
             input_receiver,
+            finished_receiver,
             default_avatar_image,
             textbox,
-            canvas: Canvas::new(ctx),
+            canvas,
         }
     }
 
     fn handle_message(&mut self, ctx: &mut Context, message: Message) {
         match message.textbox_text {
             Some(text) => {
-                self.textbox.set_text(ctx, &text);
+                let finished_sender_enabled = message.canvas_mode.is_none();
+                self.textbox.set_text(ctx, &text, finished_sender_enabled);
             }
             None => self.textbox.hide(),
         }
@@ -48,6 +68,17 @@ impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         match self.input_receiver.try_recv() {
             Ok(message) => self.handle_message(ctx, message),
+
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => panic!("wtf just happened??"),
+        }
+
+        match self.finished_receiver.try_recv() {
+            Ok(FinishedMessage::Textbox) => println!("Finished displaying text"),
+            Ok(FinishedMessage::UserInput(str)) => {
+                self.canvas.set_mode(ctx, None);
+                println!("{}", str);
+            }
 
             Err(std::sync::mpsc::TryRecvError::Empty) => {}
             Err(std::sync::mpsc::TryRecvError::Disconnected) => panic!("wtf just happened??"),
@@ -84,6 +115,8 @@ impl EventHandler for App {
     ) -> Result<(), ggez::GameError> {
         match input.keycode {
             Some(VirtualKeyCode::Back) => self.canvas.handle_backspace(ctx),
+
+            Some(VirtualKeyCode::Return) => self.canvas.handle_enter(&ctx),
 
             Some(VirtualKeyCode::Escape) => ctx.request_quit(),
 
