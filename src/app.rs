@@ -26,7 +26,7 @@ pub struct App {
 
 impl App {
     pub fn new(ctx: &mut Context, input_receiver: Receiver<Message>) -> App {
-        let default_avatar_image = Image::from_path(ctx, "/kurisu/arms_crossed_normal.png")
+        let default_avatar_image = Image::from_path(ctx, "/kurisu/normal.png")
             .expect("Could not load default kurisu image!");
 
         let (finished_sender, finished_receiver): (

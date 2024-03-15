@@ -23,7 +23,7 @@ Every message and response is in json.
 Every field is optional.
 
 - `id` is pretty much irrelevant. If it's given in the message, it'll be there in the response as well. This exists to help differentiate between messages, I think it'll make it easier for some plugins.
-- `avatar_emotion` specifies what emotion the avatar will show while the command is being executed (i.e. while showing a message in the textbox or waiting for user input). The default emotion is "normal", and for the full list you can look at `res/kurisu/` for now, but I will probably reorganize it a little.
+- `avatar_emotion` specifies what emotion the avatar will show while the command is being executed (i.e. while showing a message in the textbox or waiting for user input). The default emotion is "normal", and for the full list you can look at `res/kurisu/`.
 - `textbox_text` specifies what message will be shown in the textbox.
 - `canvas_mode` specifies what will be shown in the center of the screen, I left it as an empty object above because it needs to be explained separately.
 
