@@ -1,4 +1,7 @@
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::{
+    collections::VecDeque,
+    sync::mpsc::{channel, Receiver, Sender},
+};
 
 use ggez::{
     event::EventHandler,
@@ -16,12 +19,20 @@ pub enum FinishedMessage {
     UserInput(String),
 }
 
+#[derive(PartialEq, Eq)]
+pub enum AppState {
+    Idle,
+    ExecutingCommand,
+}
+
 pub struct App {
     input_receiver: Receiver<Message>,
     finished_receiver: Receiver<FinishedMessage>,
+    current_state: AppState,
     default_avatar_image: Image,
     textbox: Textbox,
     canvas: Canvas,
+    message_queue: VecDeque<Message>,
 }
 
 impl App {
@@ -45,27 +56,40 @@ impl App {
         App {
             input_receiver,
             finished_receiver,
+            current_state: AppState::Idle,
             default_avatar_image,
             textbox,
             canvas,
+            message_queue: VecDeque::new(),
         }
     }
 
     fn handle_message(&mut self, ctx: &mut Context, message: Message) {
-        match message.textbox_text {
-            Some(text) => {
-                let finished_sender_enabled = message.canvas_mode.is_none();
-                self.textbox.set_text(ctx, &text, finished_sender_enabled);
-            }
-            None => self.textbox.hide(),
-        }
+        if self.current_state == AppState::ExecutingCommand {
+            // if there's a command currently executing, add the message to the queue
+            self.message_queue.push_back(message);
+        } else {
+            self.current_state = AppState::ExecutingCommand;
 
-        self.canvas.set_mode(ctx, message.canvas_mode);
+            // handle textbox_text inside message
+            match message.textbox_text {
+                Some(text) => {
+                    // only enable finished_listener for the textbox if there's no canvas_mode in the message
+                    let finished_sender_enabled = message.canvas_mode.is_none();
+                    self.textbox.set_text(ctx, &text, finished_sender_enabled);
+                }
+                None => self.textbox.hide(),
+            }
+
+            // handle canvas_mode inside message
+            self.canvas.set_mode(ctx, message.canvas_mode);
+        }
     }
 }
 
 impl EventHandler for App {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        // input was received
         match self.input_receiver.try_recv() {
             Ok(message) => self.handle_message(ctx, message),
 
@@ -73,11 +97,19 @@ impl EventHandler for App {
             Err(std::sync::mpsc::TryRecvError::Disconnected) => panic!("wtf just happened??"),
         }
 
+        // command has finished
         match self.finished_receiver.try_recv() {
-            Ok(FinishedMessage::Textbox) => println!("Finished displaying text"),
-            Ok(FinishedMessage::UserInput(str)) => {
-                self.canvas.set_mode(ctx, None);
-                println!("{}", str);
+            Ok(message) => {
+                // return to idle state
+                self.current_state = AppState::Idle;
+
+                match message {
+                    FinishedMessage::Textbox => println!("Finished displaying text"),
+                    FinishedMessage::UserInput(str) => {
+                        self.canvas.set_mode(ctx, None);
+                        println!("{}", str);
+                    }
+                }
             }
 
             Err(std::sync::mpsc::TryRecvError::Empty) => {}
@@ -85,6 +117,13 @@ impl EventHandler for App {
         }
 
         self.textbox.update(ctx);
+
+        let idle = self.current_state == AppState::Idle;
+        let messages_left = !self.message_queue.is_empty();
+        if idle && messages_left {
+            let message = self.message_queue.pop_front().unwrap();
+            self.handle_message(ctx, message);
+        }
 
         Ok(())
     }

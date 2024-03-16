@@ -57,6 +57,7 @@ impl Textbox {
     pub fn set_text(&mut self, ctx: &Context, text: &String, finished_listener_enabled: bool) {
         self.shown = true;
 
+        self.time_finished = None;
         self.time_last_char_appeared = ctx.time.time_since_start();
 
         self.entire_text = text.clone();
