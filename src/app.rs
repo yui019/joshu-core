@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     sync::mpsc::{channel, Receiver, Sender},
 };
 
@@ -29,7 +29,9 @@ pub struct App {
     input_receiver: Receiver<Message>,
     finished_receiver: Receiver<FinishedMessage>,
     current_state: AppState,
-    default_avatar_image: Image,
+    default_avatar_image: String,
+    current_avatar_image: String,
+    avatar_images: HashMap<String, Image>,
     textbox: Textbox,
     canvas: Canvas,
     message_queue: VecDeque<Message>,
@@ -37,8 +39,40 @@ pub struct App {
 
 impl App {
     pub fn new(ctx: &mut Context, input_receiver: Receiver<Message>) -> App {
-        let default_avatar_image = Image::from_path(ctx, "/kurisu/normal.png")
-            .expect("Could not load default kurisu image!");
+        let avatar_images = HashMap::from([
+            (
+                String::from("normal"),
+                Image::from_path(ctx, "/kurisu/normal.png").unwrap(),
+            ),
+            (
+                String::from("embarrassed"),
+                Image::from_path(ctx, "/kurisu/embarrassed.png").unwrap(),
+            ),
+            (
+                String::from("emotionless"),
+                Image::from_path(ctx, "/kurisu/emotionless.png").unwrap(),
+            ),
+            (
+                String::from("pleased"),
+                Image::from_path(ctx, "/kurisu/pleased.png").unwrap(),
+            ),
+            (
+                String::from("winking"),
+                Image::from_path(ctx, "/kurisu/winking.png").unwrap(),
+            ),
+            (
+                String::from("angry1"),
+                Image::from_path(ctx, "/kurisu/angry1.png").unwrap(),
+            ),
+            (
+                String::from("angry2"),
+                Image::from_path(ctx, "/kurisu/angry2.png").unwrap(),
+            ),
+            (
+                String::from("angry3"),
+                Image::from_path(ctx, "/kurisu/angry3.png").unwrap(),
+            ),
+        ]);
 
         let (finished_sender, finished_receiver): (
             Sender<FinishedMessage>,
@@ -47,7 +81,7 @@ impl App {
 
         let textbox = Textbox::new(
             ctx,
-            default_avatar_image.width() as f32,
+            avatar_images["normal"].width() as f32,
             finished_sender.clone(),
         );
 
@@ -57,7 +91,9 @@ impl App {
             input_receiver,
             finished_receiver,
             current_state: AppState::Idle,
-            default_avatar_image,
+            default_avatar_image: String::from("normal"),
+            current_avatar_image: String::from("normal"),
+            avatar_images,
             textbox,
             canvas,
             message_queue: VecDeque::new(),
@@ -83,6 +119,16 @@ impl App {
 
             // handle canvas_mode inside message
             self.canvas.set_mode(ctx, message.canvas_mode);
+
+            // handle avatar image
+            match message.avatar_emotion {
+                Some(emotion) => {
+                    if self.avatar_images.contains_key(&emotion) {
+                        self.current_avatar_image = emotion;
+                    }
+                }
+                None => {}
+            }
         }
     }
 }
@@ -102,6 +148,9 @@ impl EventHandler for App {
             Ok(message) => {
                 // return to idle state
                 self.current_state = AppState::Idle;
+
+                // reset avatar image
+                self.current_avatar_image = self.default_avatar_image.clone();
 
                 match message {
                     FinishedMessage::Textbox => println!("Finished displaying text"),
@@ -133,11 +182,13 @@ impl EventHandler for App {
 
         self.textbox.draw(&mut canvas);
 
+        // draw avatar
+        let avatar_image = &self.avatar_images[&self.current_avatar_image];
         canvas.draw(
-            &self.default_avatar_image,
+            avatar_image,
             DrawParam::new().dest(Vec2::new(
-                SCREEN_WIDTH - self.default_avatar_image.width() as f32,
-                SCREEN_HEIGHT - self.default_avatar_image.height() as f32,
+                SCREEN_WIDTH - avatar_image.width() as f32,
+                SCREEN_HEIGHT - avatar_image.height() as f32,
             )),
         );
 
