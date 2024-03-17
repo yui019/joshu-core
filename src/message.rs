@@ -1,7 +1,7 @@
 use crate::canvas::CanvasMode;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Message {
     pub id: Option<i32>,
     pub avatar_emotion: Option<String>,

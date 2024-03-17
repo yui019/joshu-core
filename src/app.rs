@@ -22,7 +22,7 @@ pub enum FinishedMessage {
 #[derive(PartialEq, Eq)]
 pub enum AppState {
     Idle,
-    ExecutingCommand,
+    ExecutingCommand(Message),
 }
 
 pub struct App {
@@ -101,11 +101,11 @@ impl App {
     }
 
     fn handle_message(&mut self, ctx: &mut Context, message: Message) {
-        if self.current_state == AppState::ExecutingCommand {
+        if matches!(self.current_state, AppState::ExecutingCommand(_)) {
             // if there's a command currently executing, add the message to the queue
             self.message_queue.push_back(message);
         } else {
-            self.current_state = AppState::ExecutingCommand;
+            self.current_state = AppState::ExecutingCommand(message.clone());
 
             // handle textbox_text inside message
             match message.textbox_text {
@@ -131,6 +131,13 @@ impl App {
             }
         }
     }
+
+    fn make_finished_message(data: String, id: Option<i32>) -> String {
+        match id {
+            Some(id) => format!("{{\"id\": {}, \"data\": \"{}\"}}", id, data),
+            None => format!("{{\"data\": \"{}\"}}", data),
+        }
+    }
 }
 
 impl EventHandler for App {
@@ -146,19 +153,29 @@ impl EventHandler for App {
         // command has finished
         match self.finished_receiver.try_recv() {
             Ok(message) => {
+                let executed_command_message = match &self.current_state {
+                    AppState::Idle => unreachable!(),
+                    AppState::ExecutingCommand(m) => m.clone(),
+                };
+
                 // return to idle state
                 self.current_state = AppState::Idle;
 
                 // reset avatar image
                 self.current_avatar_image = self.default_avatar_image.clone();
 
-                match message {
-                    FinishedMessage::Textbox => println!("Finished displaying text"),
+                let finished_message = match message {
+                    FinishedMessage::Textbox => format!("Finished displaying text"),
                     FinishedMessage::UserInput(str) => {
                         self.canvas.set_mode(ctx, None);
-                        println!("{}", str);
+                        format!("{}", str)
                     }
-                }
+                };
+
+                println!(
+                    "{}",
+                    Self::make_finished_message(finished_message, executed_command_message.id)
+                );
             }
 
             Err(std::sync::mpsc::TryRecvError::Empty) => {}

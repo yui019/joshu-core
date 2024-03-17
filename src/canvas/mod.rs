@@ -47,7 +47,7 @@ trait CanvasModeHandler {
     fn handle_arrow_key(&mut self, ggez_ctx: &Context, keycode: VirtualKeyCode);
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CanvasMode {
     InputText,
     Select(Vec<String>),
