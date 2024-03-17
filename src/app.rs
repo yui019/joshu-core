@@ -35,6 +35,7 @@ pub struct App {
     textbox: Textbox,
     canvas: Canvas,
     message_queue: VecDeque<Message>,
+    executed_command: bool,
 }
 
 impl App {
@@ -97,6 +98,7 @@ impl App {
             textbox,
             canvas,
             message_queue: VecDeque::new(),
+            executed_command: false,
         }
     }
 
@@ -164,6 +166,9 @@ impl EventHandler for App {
                 // reset avatar image
                 self.current_avatar_image = self.default_avatar_image.clone();
 
+                // marks that at least 1 command has been executed
+                self.executed_command = true;
+
                 let finished_message = match message {
                     FinishedMessage::Textbox => format!("Finished displaying text"),
                     FinishedMessage::UserInput(str) => {
@@ -185,10 +190,16 @@ impl EventHandler for App {
         self.textbox.update(ctx);
 
         let idle = self.current_state == AppState::Idle;
-        let messages_left = !self.message_queue.is_empty();
-        if idle && messages_left {
-            let message = self.message_queue.pop_front().unwrap();
-            self.handle_message(ctx, message);
+        if idle {
+            let messages_left = !self.message_queue.is_empty();
+
+            if messages_left {
+                let message = self.message_queue.pop_front().unwrap();
+                self.handle_message(ctx, message);
+            } else if self.executed_command {
+                // if there's no more commands to execute, and at least 1 has been executed already, then quit
+                ctx.request_quit();
+            }
         }
 
         Ok(())
