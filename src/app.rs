@@ -1,5 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
+    fs::File,
+    io::Write,
     sync::mpsc::{channel, Receiver, Sender},
 };
 
@@ -26,6 +28,7 @@ pub enum AppState {
 }
 
 pub struct App {
+    out_pipe: Option<File>,
     input_receiver: Receiver<Message>,
     finished_receiver: Receiver<FinishedMessage>,
     current_state: AppState,
@@ -39,7 +42,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(ctx: &mut Context, input_receiver: Receiver<Message>) -> App {
+    pub fn new(
+        ctx: &mut Context,
+        input_receiver: Receiver<Message>,
+        out_pipe: Option<File>,
+    ) -> App {
         let avatar_images = HashMap::from([
             (
                 String::from("normal"),
@@ -89,6 +96,7 @@ impl App {
         let canvas = Canvas::new(ctx, finished_sender.clone());
 
         App {
+            out_pipe,
             input_receiver,
             finished_receiver,
             current_state: AppState::Idle,
@@ -140,6 +148,16 @@ impl App {
             None => format!("{{\"data\": \"{}\"}}", data),
         }
     }
+
+    fn output_message(&mut self, data: String, id: Option<i32>) {
+        let message = format!("{}\n", Self::make_finished_message(data, id));
+
+        match self.out_pipe.as_mut() {
+            Some(out_pipe) => out_pipe.write_all(message.as_bytes()).unwrap(),
+
+            None => print!("{}", message),
+        }
+    }
 }
 
 impl EventHandler for App {
@@ -177,10 +195,7 @@ impl EventHandler for App {
                     }
                 };
 
-                println!(
-                    "{}",
-                    Self::make_finished_message(finished_message, executed_command_message.id)
-                );
+                self.output_message(finished_message, executed_command_message.id);
             }
 
             Err(std::sync::mpsc::TryRecvError::Empty) => {}
