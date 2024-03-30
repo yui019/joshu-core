@@ -55,10 +55,12 @@ fn run_input_receiver() -> Receiver<Message> {
     let (sender, receiver) = channel();
     thread::spawn(move || loop {
         let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer).unwrap();
+        let size = io::stdin().read_line(&mut buffer).unwrap();
 
-        if let Ok(message) = serde_json::from_str::<Message>(&buffer) {
-            sender.send(message).unwrap();
+        if size > 0 {
+            if let Ok(message) = serde_json::from_str::<Message>(&buffer) {
+                sender.send(message).unwrap();
+            }
         }
     });
 
