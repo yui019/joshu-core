@@ -142,14 +142,14 @@ impl App {
         }
     }
 
-    fn make_finished_message(data: String, id: Option<i32>) -> String {
+    fn make_finished_message(data: String, id: Option<String>) -> String {
         match id {
-            Some(id) => format!("{{\"id\": {}, \"data\": \"{}\"}}", id, data),
+            Some(id) => format!("{{\"id\": \"{}\", \"data\": \"{}\"}}", id, data),
             None => format!("{{\"data\": \"{}\"}}", data),
         }
     }
 
-    fn output_message(&mut self, data: String, id: Option<i32>) {
+    fn output_message(&mut self, data: String, id: Option<String>) {
         let message = format!("{}\n", Self::make_finished_message(data, id));
 
         match self.out_pipe.as_mut() {
