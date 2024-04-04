@@ -251,7 +251,19 @@ impl EventHandler for App {
 
             Some(VirtualKeyCode::Return) => self.canvas.handle_enter(&ctx),
 
-            Some(VirtualKeyCode::Escape) => ctx.request_quit(),
+            Some(VirtualKeyCode::Escape) => {
+                // if a command was executing, then send a message saying that joshu is quitting
+                // but maybe the command that's currently executing was submitted by a message with an id, so extract that here first
+                match &self.current_state {
+                    AppState::ExecutingCommand(Message { id: Some(id), .. }) => {
+                        self.output_message(format!("Quitting..."), Some(id.clone()));
+                    }
+
+                    _ => {}
+                };
+
+                ctx.request_quit();
+            }
 
             Some(VirtualKeyCode::Left)
             | Some(VirtualKeyCode::Right)
